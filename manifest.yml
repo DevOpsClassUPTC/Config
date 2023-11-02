@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: restaurantapp
+  labels:
+    app: restaurantapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: restaurantapp
+  template:
+    metadata:
+      labels:
+        app: restaurantapp
+    spec:
+      containers:
+        - name: restaurantapp
+          image: faraway1006/food-delivery:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9091
+          resources:
+            limits:
+              cpu: "1.0"
+              memory: "512Mi"
+          env:
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: secret
+                  key: mysql-username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret
+                  key: mysql-password
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: configmap
+                  key: restaurantdb_url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: restaurant-service
+spec:
+  ports:
+    - protocol: TCP
+      port: 9091
+      targetPort: 9091
+  selector:
+    app: restaurantapp
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: foodapp
+  labels:
+    app: foodapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: foodapp
+  template:
+    metadata:
+      labels:
+        app: foodapp
+    spec:
+      containers:
+        - name: foodapp
+          image: faraway1006/food-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9094
+          resources:
+            limits:
+              cpu: "1.0"
+              memory: "512Mi"
+          env:
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: secret
+                  key: mysql-username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret
+                  key: mysql-password
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: configmap
+                  key: fooddb_url
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: food-service
+spec:
+  ports:
+    - protocol: TCP
+      port: 9094
+      targetPort: 9094
+  selector:
+    app: foodapp
